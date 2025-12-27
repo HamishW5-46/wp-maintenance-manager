@@ -11,14 +11,26 @@ class WPMM_Htaccess {
     }
 
     public static function can_manage_htaccess(): bool {
+        $filesystem = self::get_filesystem();
         $path = self::htaccess_path();
 
         // If it doesn't exist, we can create it if the directory is writable.
         if (!file_exists($path)) {
-            return is_writable(ABSPATH);
+            if ($filesystem && method_exists($filesystem, 'is_writable')) {
+                return $filesystem->is_writable(ABSPATH);
+            }
+            return true;
         }
 
-        return is_readable($path) && is_writable($path);
+        if (!is_readable($path)) {
+            return false;
+        }
+
+        if ($filesystem && method_exists($filesystem, 'is_writable')) {
+            return $filesystem->is_writable($path);
+        }
+
+        return true;
     }
 
     /**
@@ -74,8 +86,8 @@ class WPMM_Htaccess {
             $moved = $filesystem->move($tmp, $path, true);
         }
 
-        if (!$moved && !@rename($tmp, $path)) {
-            // Fallback for filesystems that dislike rename
+        if (!$moved) {
+            // Fallback for filesystems that dislike move
             $written = file_put_contents($path, $contents, LOCK_EX);
             self::delete_file($tmp);
             if ($written === false) {
@@ -117,10 +129,16 @@ class WPMM_Htaccess {
     }
 
     private static function delete_file(string $path): void {
+        $filesystem = self::get_filesystem();
+
+        if ($filesystem && method_exists($filesystem, 'delete')) {
+            $filesystem->delete($path);
+            return;
+        }
+
         if (function_exists('wp_delete_file')) {
             wp_delete_file($path);
             return;
         }
-        @unlink($path);
     }
 }

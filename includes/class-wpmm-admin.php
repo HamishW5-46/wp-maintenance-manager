@@ -78,6 +78,7 @@ class WPMM_Admin {
             'page' => 'wpmm-maintenance',
             'wpmm_updated' => $result['ok'] ? '1' : '0',
             'wpmm_msg' => rawurlencode($result['message']),
+            'wpmm_notice_nonce' => wp_create_nonce('wpmm_notice'),
         ], admin_url('options-general.php'));
 
         wp_safe_redirect($redirect);
@@ -99,8 +100,15 @@ class WPMM_Admin {
         $can_manage = WPMM_Htaccess::can_manage_htaccess();
 
         $get = wp_unslash($_GET);
-        $updated = isset($get['wpmm_updated']) ? sanitize_text_field($get['wpmm_updated']) : null;
-        $msg = isset($get['wpmm_msg']) ? sanitize_text_field(rawurldecode($get['wpmm_msg'])) : '';
+        $notice_nonce = isset($get['wpmm_notice_nonce']) ? sanitize_text_field($get['wpmm_notice_nonce']) : '';
+        $notice_ok = $notice_nonce !== '' && wp_verify_nonce($notice_nonce, 'wpmm_notice');
+        if ($notice_ok) {
+            $updated = isset($get['wpmm_updated']) ? sanitize_text_field($get['wpmm_updated']) : null;
+            $msg = isset($get['wpmm_msg']) ? sanitize_text_field(rawurldecode($get['wpmm_msg'])) : '';
+        } else {
+            $updated = null;
+            $msg = '';
+        }
 
         echo '<div class="wrap">';
         echo '<h1>Maintenance Mode (Apache .htaccess)</h1>';
@@ -190,6 +198,7 @@ class WPMM_Admin {
                     ? 'Emergency disable: maintenance rules forcibly removed.'
                     : 'Emergency disable failed: ' . $result['message']
             ),
+            'wpmm_notice_nonce' => wp_create_nonce('wpmm_notice'),
         ], admin_url('options-general.php'));
 
         wp_safe_redirect($redirect);
