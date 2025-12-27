@@ -74,11 +74,6 @@ No. Header trust is intentionally avoided.
 = What happens on deactivation? =
 All maintenance rules are forcibly removed from `.htaccess`.
 
-== Screenshots ==
-
-1. Maintenance mode settings page
-2. Example generated `.htaccess` rules
-
 == Changelog ==
 
 = 0.3.0 =
