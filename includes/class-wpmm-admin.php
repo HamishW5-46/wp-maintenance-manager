@@ -35,19 +35,21 @@ class WPMM_Admin {
         }
         check_admin_referer('wpmm_apply');
 
-        $enabled = isset($_POST['wpmm_enabled']) ? (bool) $_POST['wpmm_enabled'] : false;
+        $post = wp_unslash($_POST);
+
+        $enabled = isset($post['wpmm_enabled']) ? (bool) $post['wpmm_enabled'] : false;
         update_option('wpmm_enabled', $enabled);
 
-        update_option('wpmm_cookie_bypass', isset($_POST['wpmm_cookie_bypass']));
-        update_option('wpmm_allow_xmlrpc', isset($_POST['wpmm_allow_xmlrpc']));
+        update_option('wpmm_cookie_bypass', isset($post['wpmm_cookie_bypass']));
+        update_option('wpmm_allow_xmlrpc', isset($post['wpmm_allow_xmlrpc']));
 
-        $ips = isset($_POST['wpmm_allow_ips']) ? (string) $_POST['wpmm_allow_ips'] : '';
+        $ips = isset($post['wpmm_allow_ips']) ? sanitize_textarea_field($post['wpmm_allow_ips']) : '';
         update_option('wpmm_allow_ips', $ips);
 
-        $use_custom = isset($_POST['wpmm_use_custom_503']);
+        $use_custom = isset($post['wpmm_use_custom_503']);
         update_option('wpmm_use_custom_503', $use_custom);
 
-        $custom_path = isset($_POST['wpmm_custom_503_path']) ? trim((string) $_POST['wpmm_custom_503_path']) : '';
+        $custom_path = isset($post['wpmm_custom_503_path']) ? trim(sanitize_text_field($post['wpmm_custom_503_path'])) : '';
         update_option('wpmm_custom_503_path', $custom_path);
 
         $token = (string) get_option('wpmm_bypass_token', '');
@@ -96,8 +98,9 @@ class WPMM_Admin {
 
         $can_manage = WPMM_Htaccess::can_manage_htaccess();
 
-        $updated = isset($_GET['wpmm_updated']) ? (string) $_GET['wpmm_updated'] : null;
-        $msg = isset($_GET['wpmm_msg']) ? rawurldecode((string) $_GET['wpmm_msg']) : '';
+        $get = wp_unslash($_GET);
+        $updated = isset($get['wpmm_updated']) ? sanitize_text_field($get['wpmm_updated']) : null;
+        $msg = isset($get['wpmm_msg']) ? sanitize_text_field(rawurldecode($get['wpmm_msg'])) : '';
 
         echo '<div class="wrap">';
         echo '<h1>Maintenance Mode (Apache .htaccess)</h1>';

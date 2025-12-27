@@ -54,6 +54,8 @@ class WPMM_Htaccess {
         // Always remove existing block first
         $contents = self::remove_block($contents);
 
+        $filesystem = self::get_filesystem();
+
         if ($enabled) {
             $block = self::build_block();
             // Prepend our block so it runs before WP rewrites
@@ -63,14 +65,19 @@ class WPMM_Htaccess {
         // Atomic-ish write: write to temp then rename
         $tmp = $path . '.wpmm.tmp';
         if (file_put_contents($tmp, $contents, LOCK_EX) === false) {
-            @unlink($tmp);
+            self::delete_file($tmp);
             return ['ok' => false, 'message' => 'Failed to write temp .htaccess file.'];
         }
 
-        if (!@rename($tmp, $path)) {
+        $moved = false;
+        if ($filesystem && method_exists($filesystem, 'move')) {
+            $moved = $filesystem->move($tmp, $path, true);
+        }
+
+        if (!$moved && !@rename($tmp, $path)) {
             // Fallback for filesystems that dislike rename
             $written = file_put_contents($path, $contents, LOCK_EX);
-            @unlink($tmp);
+            self::delete_file($tmp);
             if ($written === false) {
                 return ['ok' => false, 'message' => 'Failed to write .htaccess file.'];
             }
@@ -92,5 +99,28 @@ class WPMM_Htaccess {
     public static function build_block(): string {
         $rules = WPMM_Rules::generate();
         return self::MARKER_START . "\n" . $rules . "\n" . self::MARKER_END;
+    }
+
+    private static function get_filesystem() {
+        if (!function_exists('WP_Filesystem')) {
+            return null;
+        }
+
+        global $wp_filesystem;
+
+        if (!$wp_filesystem) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+            WP_Filesystem();
+        }
+
+        return is_object($wp_filesystem) ? $wp_filesystem : null;
+    }
+
+    private static function delete_file(string $path): void {
+        if (function_exists('wp_delete_file')) {
+            wp_delete_file($path);
+            return;
+        }
+        @unlink($path);
     }
 }

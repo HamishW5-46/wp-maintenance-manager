@@ -2,8 +2,10 @@
 /**
  * Plugin Name: WP Maintenance Manager
  * Description: Toggles Apache-level maintenance mode via .htaccess with admin cookie bypass, IP allowlist, loopback safety, and optional custom 503 page.
- * Version: 0.1.0
- * Author: Hamish Wright
+ * Version: 0.3.0
+ * Author: hamishwright
+ * License: GPLv2 or later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 defined('ABSPATH') || exit;
