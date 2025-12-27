@@ -18,7 +18,7 @@ Instead of intercepting requests in PHP, this plugin writes controlled rules dir
 
 - True HTTP 503 responses
 - No dependency on WordPress loading
-- No spoofable cookie or header checks
+- No reliance on WordPress auth cookies or request headers
 - Clean enable/disable with guaranteed rule removal
 
 It is designed for administrators who want reliability, security, and transparency — not visual splash screens or JavaScript hacks.
