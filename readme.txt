@@ -1,5 +1,5 @@
 === WP Maintenance Manager ===
-Contributors: hamishwright
+Contributors: Hamish Wright
 Tags: maintenance mode, htaccess, apache, 503, admin bypass
 Requires at least: 6.0
 Tested up to: 6.9
