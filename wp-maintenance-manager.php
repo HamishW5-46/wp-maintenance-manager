@@ -33,3 +33,14 @@ add_action('plugins_loaded', function () {
         new WPMH_Admin();
     }
 });
+
+add_action('init', function () {
+    if (
+        isset($_GET['wpmh_emergency']) &&
+        $_GET['wpmh_emergency'] === '1' &&
+        current_user_can('manage_options')
+    ) {
+        update_option('wpmh_enabled', false);
+        WPMH_Htaccess::sync(false);
+    }
+});

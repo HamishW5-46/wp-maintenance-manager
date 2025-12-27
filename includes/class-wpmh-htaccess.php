@@ -27,6 +27,12 @@ class WPMH_Htaccess {
      * @return array{ok:bool,message:string}
      */
     public static function sync(?bool $force_enabled = null): array {
+        // Absolute emergency kill-switch:
+        // If this file exists, maintenance is forcibly disabled.
+        if (file_exists(WP_CONTENT_DIR . '/wpmh-disable')) {
+            $force_enabled = false;
+        }
+
         $enabled = $force_enabled;
         if ($enabled === null) {
             $enabled = (bool) get_option('wpmh_enabled', false);

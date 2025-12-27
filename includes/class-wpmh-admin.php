@@ -7,6 +7,7 @@ class WPMH_Admin {
         add_action('admin_menu', [$this, 'menu']);
         add_action('admin_init', [$this, 'register_settings']);
         add_action('admin_post_wpmh_apply', [$this, 'handle_apply']);
+        add_action('admin_post_wpmh_emergency_disable', [$this, 'handle_emergency_disable']);
     }
 
     public function menu() {
@@ -25,7 +26,7 @@ class WPMH_Admin {
         register_setting('wpmh', 'wpmh_allow_ips', ['type' => 'string', 'default' => '']);
         register_setting('wpmh', 'wpmh_use_custom_503', ['type' => 'boolean', 'default' => false]);
         register_setting('wpmh', 'wpmh_custom_503_path', ['type' => 'string', 'default' => '/maintenance/index.html']);
-        register_setting('wpmh', 'wpmh_allow_xmlrpc', ['type' => 'boolean', 'default' => false});
+        register_setting('wpmh', 'wpmh_allow_xmlrpc', ['type' => 'boolean', 'default' => false]);
     }
 
     public function handle_apply() {
@@ -127,6 +128,14 @@ class WPMH_Admin {
         submit_button('Apply to .htaccess', 'primary', 'submit', false, ['disabled' => !$can_manage]);
         echo ' <a class="button" href="' . esc_url(admin_url('options-general.php?page=wpmh-maintenance')) . '">Refresh</a>';
 
+        echo '<hr>';
+        echo '<h2>Emergency controls</h2>';
+        echo '<p><strong>Use only if something has gone wrong.</strong> This forcibly removes the maintenance rules from <code>.htaccess</code>.</p>';
+
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin-top:1rem;">';
+        echo '<input type="hidden" name="action" value="wpmh_emergency_disable">';
+        wp_nonce_field('wpmh_emergency_disable');
+        submit_button('Emergency Disable Maintenance', 'delete');
         echo '</form>';
 
         echo '<hr>';
@@ -135,5 +144,30 @@ class WPMH_Admin {
         echo '<pre class="code" style="white-space:pre-wrap; max-width: 100%;">' . esc_html(WPMH_Htaccess::build_block()) . '</pre>';
 
         echo '</div>';
+    }
+
+    public function handle_emergency_disable() {
+        if (!current_user_can('manage_options')) {
+            wp_die('Nope.');
+        }
+
+        check_admin_referer('wpmh_emergency_disable');
+
+        // Force-disable regardless of saved options
+        update_option('wpmh_enabled', false);
+        $result = WPMH_Htaccess::sync(false);
+
+        $redirect = add_query_arg([
+            'page' => 'wpmh-maintenance',
+            'wpmh_updated' => $result['ok'] ? '1' : '0',
+            'wpmh_msg' => rawurlencode(
+                $result['ok']
+                    ? 'Emergency disable: maintenance rules forcibly removed.'
+                    : 'Emergency disable failed: ' . $result['message']
+            ),
+        ], admin_url('options-general.php'));
+
+        wp_safe_redirect($redirect);
+        exit;
     }
 }
