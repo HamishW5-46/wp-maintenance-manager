@@ -86,7 +86,7 @@ class WPMM_Rules {
             $lines[] = "";
             if ($token !== '') {
                 $lines[] = "# Allow admins with bypass token cookie";
-                $lines[] = "RewriteCond %{HTTP_COOKIE} (^|;\s*)wpmm_bypass=" . $token . "(;|$)";
+                $lines[] = 'RewriteCond %{HTTP_COOKIE} (^|;\s*)wpmm_bypass=' . $token . '(;|$)';
                 $lines[] = "RewriteRule ^ - [L]";
             }
         }
@@ -143,7 +143,7 @@ class WPMM_Rules {
 
         foreach ($lines as $line) {
             $line = trim($line);
-            if ($line === '' || str_starts_with($line, '#')) continue;
+            if ($line === '' || strpos($line, '#') === 0) continue;
 
             // CIDR?
             if (strpos($line, '/') !== false) {
@@ -165,7 +165,7 @@ class WPMM_Rules {
             }
 
             // IPv6 prefix like 2401:db00:abcd:1234::
-            if (str_contains($line, ':') && (str_ends_with($line, '::') || str_ends_with($line, ':'))) {
+            if (strpos($line, ':') !== false && (substr($line, -2) === '::' || substr($line, -1) === ':')) {
                 $prefix = rtrim($line, ':');
                 $regexes[] = '^' . preg_quote($prefix, '/') . '.*$';
                 continue;

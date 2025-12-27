@@ -123,8 +123,8 @@ class WPMM_Admin {
         echo '</td></tr>';
 
         echo '<tr><th scope="row">Bypass via logged-in cookie</th><td>';
-        echo '<label><input type="checkbox" name="wpmm_cookie_bypass" ' . checked($cookie_bypass, true, false) . '> Allow any logged-in session (wordpress_logged_in_)</label>';
-        echo '<p class="description">Recommended if you use Cloudflare/proxies or your IP changes often.</p>';
+        echo '<label><input type="checkbox" name="wpmm_cookie_bypass" ' . checked($cookie_bypass, true, false) . '> Allow admins with bypass cookie</label>';
+        echo '<p class="description">Admins receive a secure bypass cookie when maintenance mode is enabled. Useful when IPs change or the site is behind a proxy/CDN.</p>';
         echo '</td></tr>';
 
         echo '<tr><th scope="row">Allowlist IPs</th><td>';

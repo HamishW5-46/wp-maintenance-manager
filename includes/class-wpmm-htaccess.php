@@ -80,8 +80,13 @@ class WPMM_Htaccess {
     }
 
     public static function remove_block(string $contents): string {
-        $pattern = '/' . preg_quote(self::MARKER_START, '/') . '.*?' . preg_quote(self::MARKER_END, '/') . '\s*/s';
-        return preg_replace($pattern, '', $contents) ?? $contents;
+        $patterns = [
+            '/' . preg_quote(self::MARKER_START, '/') . '.*?' . preg_quote(self::MARKER_END, '/') . '\s*/s',
+        ];
+        foreach ($patterns as $pattern) {
+            $contents = preg_replace($pattern, '', $contents) ?? $contents;
+        }
+        return $contents;
     }
 
     public static function build_block(): string {
