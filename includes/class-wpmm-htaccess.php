@@ -26,10 +26,8 @@ class WPMM_Htaccess {
             return false;
         }
 
-        if ($filesystem && method_exists($filesystem, 'is_writable')) {
-            return $filesystem->is_writable($path);
-        }
-
+        // If the file is readable, allow the write attempt.
+        // WordPress core prefers attempting the write over pre-checks.
         return true;
     }
 
