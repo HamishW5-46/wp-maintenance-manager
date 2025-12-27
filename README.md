@@ -3,7 +3,7 @@ Safely toggles server-level maintenance mode via .htaccess with admin bypass
 
 This is Apache-only. On nginx-only hosting, .htaccess does nothing.
 
-If the site is behind Cloudflare/proxy, IP allowlists can be misleading because REMOTE_ADDR becomes the proxy. The cookie bypass is why you won’t get locked out.
+If the site is behind Cloudflare/proxy, IP allowlists can be misleading because REMOTE_ADDR becomes the proxy. Admin bypass works via a secure cookie issued when maintenance is enabled, so you won’t get locked out.
 
 The rule set explicitly allows:
 - /wp-admin
@@ -14,4 +14,5 @@ The rule set explicitly allows:
 - loopback (127.0.0.1, ::1)
 - real files (assets)
 
+/wp-admin must remain reachable for admin access during maintenance.
 That covers the “don’t break internal services” requirement.

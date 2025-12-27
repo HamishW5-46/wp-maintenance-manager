@@ -1,10 +1,10 @@
 <?php
 defined('ABSPATH') || exit;
 
-class WPMH_Htaccess {
+class WPMM_Htaccess {
 
-    const MARKER_START = '# BEGIN WPMH_MAINTENANCE';
-    const MARKER_END   = '# END WPMH_MAINTENANCE';
+    const MARKER_START = '# BEGIN WPMM_MAINTENANCE';
+    const MARKER_END   = '# END WPMM_MAINTENANCE';
 
     public static function htaccess_path(): string {
         return ABSPATH . '.htaccess';
@@ -29,13 +29,13 @@ class WPMH_Htaccess {
     public static function sync(?bool $force_enabled = null): array {
         // Absolute emergency kill-switch:
         // If this file exists, maintenance is forcibly disabled.
-        if (file_exists(WP_CONTENT_DIR . '/wpmh-disable')) {
+        if (file_exists(WP_CONTENT_DIR . '/wpmm-disable')) {
             $force_enabled = false;
         }
 
         $enabled = $force_enabled;
         if ($enabled === null) {
-            $enabled = (bool) get_option('wpmh_enabled', false);
+            $enabled = (bool) get_option('wpmm_enabled', false);
         }
 
         if (!self::can_manage_htaccess()) {
@@ -61,7 +61,7 @@ class WPMH_Htaccess {
         }
 
         // Atomic-ish write: write to temp then rename
-        $tmp = $path . '.wpmh.tmp';
+        $tmp = $path . '.wpmm.tmp';
         if (file_put_contents($tmp, $contents, LOCK_EX) === false) {
             @unlink($tmp);
             return ['ok' => false, 'message' => 'Failed to write temp .htaccess file.'];
@@ -85,7 +85,7 @@ class WPMH_Htaccess {
     }
 
     public static function build_block(): string {
-        $rules = WPMH_Rules::generate();
+        $rules = WPMM_Rules::generate();
         return self::MARKER_START . "\n" . $rules . "\n" . self::MARKER_END;
     }
 }

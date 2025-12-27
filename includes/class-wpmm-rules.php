@@ -1,22 +1,22 @@
 <?php
 defined('ABSPATH') || exit;
 
-class WPMH_Rules {
+class WPMM_Rules {
 
     /**
      * Generate Apache rewrite rules for maintenance mode.
-     * Marker wrapper is handled by WPMH_Htaccess.
+     * Marker wrapper is handled by WPMM_Htaccess.
      */
     public static function generate(): string {
-        $custom_503_path = trim((string) get_option('wpmh_custom_503_path', ''));
-        $use_custom_503  = (bool) get_option('wpmh_use_custom_503', false);
+        $custom_503_path = trim((string) get_option('wpmm_custom_503_path', ''));
+        $use_custom_503  = (bool) get_option('wpmm_use_custom_503', false);
 
         // Allowlist IPs (one per line)
-        $raw_ips = (string) get_option('wpmh_allow_ips', '');
+        $raw_ips = (string) get_option('wpmm_allow_ips', '');
         $allow_ip_regexes = self::build_ip_allow_regexes($raw_ips);
 
         // Cookie bypass is always on by default, can be toggled
-        $cookie_bypass = (bool) get_option('wpmh_cookie_bypass', true);
+        $cookie_bypass = (bool) get_option('wpmm_cookie_bypass', true);
 
         // Maintenance assets path (when custom page enabled)
         $maintenance_dir = self::normalize_path_prefix(dirname($custom_503_path ?: '/maintenance/index.html'));
@@ -73,20 +73,22 @@ class WPMH_Rules {
         $lines[] = "RewriteRule ^ - [L]";
 
         // Optional: if you use XML-RPC, keep it reachable (many sites block it anyway).
-        $allow_xmlrpc = (bool) get_option('wpmh_allow_xmlrpc', false);
+        $allow_xmlrpc = (bool) get_option('wpmm_allow_xmlrpc', false);
         if ($allow_xmlrpc) {
             $lines[] = "RewriteCond %{REQUEST_URI} ^/xmlrpc\\.php$";
             $lines[] = "RewriteRule ^ - [L]";
         }
 
         // --- Cookie bypass ---
-        // WordPress auth cookies typically include "wordpress_logged_in_" for logged-in sessions.
-        // This bypass is “good enough” and avoids Cloudflare/proxy IP headaches.
+        // Dedicated bypass cookie for admins.
         if ($cookie_bypass) {
+            $token = (string) get_option('wpmm_bypass_token', '');
             $lines[] = "";
-            $lines[] = "# Allow logged-in users (WordPress auth cookie bypass)";
-            $lines[] = "RewriteCond %{HTTP_COOKIE} wordpress_logged_in_";
-            $lines[] = "RewriteRule ^ - [L]";
+            if ($token !== '') {
+                $lines[] = "# Allow admins with bypass token cookie";
+                $lines[] = "RewriteCond %{HTTP_COOKIE} (^|;\s*)wpmm_bypass=" . $token . "(;|$)";
+                $lines[] = "RewriteRule ^ - [L]";
+            }
         }
 
         // --- IP allowlist (optional) ---

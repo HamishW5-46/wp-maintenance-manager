@@ -8,39 +8,28 @@
 
 defined('ABSPATH') || exit;
 
-define('WPMH_VERSION', '1.0.0');
-define('WPMH_PLUGIN_FILE', __FILE__);
-define('WPMH_PLUGIN_DIR', plugin_dir_path(__FILE__));
+define('WPMM_VERSION', '0.1.0');
+define('WPMM_PLUGIN_FILE', __FILE__);
+define('WPMM_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
-require_once WPMH_PLUGIN_DIR . 'includes/class-wpmh-htaccess.php';
-require_once WPMH_PLUGIN_DIR . 'includes/class-wpmh-rules.php';
-require_once WPMH_PLUGIN_DIR . 'includes/class-wpmh-admin.php';
+require_once WPMM_PLUGIN_DIR . 'includes/class-wpmm-htaccess.php';
+require_once WPMM_PLUGIN_DIR . 'includes/class-wpmm-rules.php';
+require_once WPMM_PLUGIN_DIR . 'includes/class-wpmm-admin.php';
 
 register_activation_hook(__FILE__, function () {
     // On activation: do nothing destructive. User can enable via UI.
     // But we will ensure our markers are cleaned if someone re-activated.
-    WPMH_Htaccess::sync(false);
+    WPMM_Htaccess::sync(false);
 });
 
 register_deactivation_hook(__FILE__, function () {
     // Always remove our block on deactivation.
-    WPMH_Htaccess::sync(false);
+    WPMM_Htaccess::sync(false);
 });
 
 // Boot admin UI
 add_action('plugins_loaded', function () {
     if (is_admin()) {
-        new WPMH_Admin();
-    }
-});
-
-add_action('init', function () {
-    if (
-        isset($_GET['wpmh_emergency']) &&
-        $_GET['wpmh_emergency'] === '1' &&
-        current_user_can('manage_options')
-    ) {
-        update_option('wpmh_enabled', false);
-        WPMH_Htaccess::sync(false);
+        new WPMM_Admin();
     }
 });
