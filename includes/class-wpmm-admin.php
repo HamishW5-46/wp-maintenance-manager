@@ -139,7 +139,7 @@ class WPMM_Admin {
         echo '</td></tr>';
 
         echo '<tr><th scope="row">Allowlist IPs</th><td>';
-        echo '<textarea name="wpmm_allow_ips" rows="6" cols="60" class="large-text code" placeholder="One per line. Supports IPv4, IPv6, IPv6 prefix (::), and limited CIDR like /32 /24 /16 /8 and IPv6 /64 /128.">' . esc_textarea($allow_ips) . '</textarea>';
+        echo '<textarea name="wpmm_allow_ips" rows="6" cols="60" class="large-text code" placeholder="One per line. Supports IPv4, IPv6, IPv6 prefix (::), and CIDR like /24 or /64.">' . esc_textarea($allow_ips) . '</textarea>';
         echo '<p class="description">Example: <code>203.0.113.42</code> or <code>2401:db00:abcd:1234::</code> or <code>2401:db00:abcd:1234::/64</code></p>';
         echo '</td></tr>';
 

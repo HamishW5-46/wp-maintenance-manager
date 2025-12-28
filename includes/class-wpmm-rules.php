@@ -13,7 +13,7 @@ class WPMM_Rules {
 
         // Allowlist IPs (one per line)
         $raw_ips = (string) get_option('wpmm_allow_ips', '');
-        $allow_ip_regexes = self::build_ip_allow_regexes($raw_ips);
+        $allow_ip_entries = self::build_ip_allowlist_entries($raw_ips);
 
         // Cookie bypass is always on by default, can be toggled
         $cookie_bypass = (bool) get_option('wpmm_cookie_bypass', true);
@@ -92,12 +92,12 @@ class WPMM_Rules {
         }
 
         // --- IP allowlist (optional) ---
-        if (!empty($allow_ip_regexes)) {
+        if (!empty($allow_ip_entries)) {
             $lines[] = "";
             $lines[] = "# Allow listed IPs";
-            foreach ($allow_ip_regexes as $regex) {
+            foreach ($allow_ip_entries as $entry) {
                 // If any matches -> allow
-                $lines[] = "RewriteCond %{REMOTE_ADDR} " . $regex;
+                $lines[] = "RewriteCond %{REMOTE_ADDR} -ipmatch '" . $entry . "'";
                 $lines[] = "RewriteRule ^ - [L]";
             }
         }
@@ -130,16 +130,16 @@ class WPMM_Rules {
     }
 
     /**
-     * Build safe regexes for Apache RewriteCond %{REMOTE_ADDR}
+     * Build allowlist entries for Apache RewriteCond %{REMOTE_ADDR} -ipmatch.
      * Supports:
      * - IPv4 exact
      * - IPv6 exact
-     * - IPv6 prefix using CIDR /64-/128 (we’ll turn into regex)
-     * - plain IPv6 prefix ending with :: (treated as prefix)
+     * - IPv4/IPv6 CIDR
+     * - plain IPv6 prefix ending with :: or : (treated as prefix)
      */
-    private static function build_ip_allow_regexes(string $raw): array {
+    private static function build_ip_allowlist_entries(string $raw): array {
         $lines = preg_split('/\R/', $raw) ?: [];
-        $regexes = [];
+        $entries = [];
 
         foreach ($lines as $line) {
             $line = trim($line);
@@ -147,27 +147,31 @@ class WPMM_Rules {
 
             // CIDR?
             if (strpos($line, '/') !== false) {
-                $regex = self::cidr_to_regex($line);
-                if ($regex) $regexes[] = $regex;
+                $cidr = self::normalize_cidr($line);
+                if ($cidr !== null) {
+                    $entries[] = $cidr;
+                }
                 continue;
             }
 
             // IPv4 exact
             if (filter_var($line, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-                $regexes[] = '^' . preg_quote($line, '/') . '$';
+                $entries[] = $line;
                 continue;
             }
 
             // IPv6 exact
             if (filter_var($line, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-                $regexes[] = '^' . preg_quote($line, '/') . '$';
+                $entries[] = $line;
                 continue;
             }
 
             // IPv6 prefix like 2401:db00:abcd:1234::
             if (strpos($line, ':') !== false && (substr($line, -2) === '::' || substr($line, -1) === ':')) {
-                $prefix = rtrim($line, ':');
-                $regexes[] = '^' . preg_quote($prefix, '/') . '.*$';
+                $prefix_cidr = self::ipv6_prefix_to_cidr($line);
+                if ($prefix_cidr !== null) {
+                    $entries[] = $prefix_cidr;
+                }
                 continue;
             }
 
@@ -175,20 +179,13 @@ class WPMM_Rules {
             // We DO NOT accept raw regex here for safety. Ignore invalid lines.
         }
 
-        // Apache RewriteCond uses regex without delimiters
-        // Ensure they're not empty
-        return array_values(array_filter($regexes));
+        return array_values(array_unique($entries));
     }
 
     /**
-     * Very lightweight CIDR to regex for common cases:
-     * - IPv4 /32 -> exact
-     * - IPv4 /24, /16, /8 (basic)
-     * - IPv6 /64 (common prefix), /128 exact
-     *
-     * For anything exotic: user should use cookie bypass.
+     * Normalize and validate CIDR input for -ipmatch.
      */
-    private static function cidr_to_regex(string $cidr): ?string {
+    private static function normalize_cidr(string $cidr): ?string {
         $cidr = trim($cidr);
 
         [$ip, $mask] = array_pad(explode('/', $cidr, 2), 2, null);
@@ -197,41 +194,40 @@ class WPMM_Rules {
         $mask = (int) $mask;
 
         if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-            // Basic IPv4 masks only
-            if ($mask === 32) return '^' . preg_quote($ip, '/') . '$';
-
-            $octets = explode('.', $ip);
-            if (count($octets) !== 4) return null;
-
-            if ($mask === 24) return '^' . preg_quote($octets[0] . '.' . $octets[1] . '.' . $octets[2] . '.', '/') . '.*$';
-            if ($mask === 16) return '^' . preg_quote($octets[0] . '.' . $octets[1] . '.', '/') . '.*$';
-            if ($mask === 8)  return '^' . preg_quote($octets[0] . '.', '/') . '.*$';
-
-            return null;
+            if ($mask < 0 || $mask > 32) {
+                return null;
+            }
+            return $ip . '/' . $mask;
         }
 
         if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-            if ($mask === 128) return '^' . preg_quote($ip, '/') . '$';
-            // Treat /64 as prefix match on first 4 hextets (good enough)
-            if ($mask === 64) {
-                $expanded = self::expand_ipv6($ip);
-                if (!$expanded) return null;
-                $hextets = explode(':', $expanded);
-                if (count($hextets) !== 8) return null;
-                $prefix = implode(':', array_slice($hextets, 0, 4));
-                return '^' . preg_quote($prefix, '/') . '.*$';
+            if ($mask < 0 || $mask > 128) {
+                return null;
             }
-            return null;
+            return $ip . '/' . $mask;
         }
 
         return null;
     }
 
-    private static function expand_ipv6(string $ip): ?string {
-        $packed = @inet_pton($ip);
-        if ($packed === false) return null;
-        $hex = bin2hex($packed);
-        $parts = str_split($hex, 4);
-        return implode(':', $parts);
+    private static function ipv6_prefix_to_cidr(string $prefix): ?string {
+        $trimmed = rtrim($prefix, ':');
+        if ($trimmed === '') {
+            return null;
+        }
+
+        $candidate = $trimmed . '::';
+        if (!filter_var($candidate, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+            return null;
+        }
+
+        $hextets = array_filter(explode(':', $trimmed), 'strlen');
+        $hextet_count = count($hextets);
+        if ($hextet_count < 1 || $hextet_count > 8) {
+            return null;
+        }
+
+        $mask = $hextet_count * 16;
+        return $candidate . '/' . $mask;
     }
 }

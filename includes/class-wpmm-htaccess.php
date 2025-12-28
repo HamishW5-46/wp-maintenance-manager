@@ -11,23 +11,19 @@ class WPMM_Htaccess {
     }
 
     public static function can_manage_htaccess(): bool {
-        $filesystem = self::get_filesystem();
         $path = self::htaccess_path();
 
-        // If it doesn't exist, we can create it if the directory is writable.
+        // If it doesn't exist, allow the write attempt.
         if (!file_exists($path)) {
-            if ($filesystem && method_exists($filesystem, 'is_writable')) {
-                return $filesystem->is_writable(ABSPATH);
-            }
             return true;
         }
 
+        // If the file exists but is not readable, we cannot manage it safely.
         if (!is_readable($path)) {
             return false;
         }
 
-        // If the file is readable, allow the write attempt.
-        // WordPress core prefers attempting the write over pre-checks.
+        // File exists and is readable; allow write attempt.
         return true;
     }
 
@@ -111,16 +107,26 @@ class WPMM_Htaccess {
         return self::MARKER_START . "\n" . $rules . "\n" . self::MARKER_END;
     }
 
-    private static function get_filesystem() {
+    protected static function get_filesystem() {
+        global $wp_filesystem;
+
+        if (!function_exists('WP_Filesystem')) {
+            $filesystem_file = ABSPATH . 'wp-admin/includes/file.php';
+            if (!is_readable($filesystem_file)) {
+                return null;
+            }
+            require_once $filesystem_file;
+        }
+
         if (!function_exists('WP_Filesystem')) {
             return null;
         }
 
-        global $wp_filesystem;
-
         if (!$wp_filesystem) {
-            require_once ABSPATH . 'wp-admin/includes/file.php';
-            WP_Filesystem();
+            $initialized = WP_Filesystem();
+            if ($initialized === false) {
+                return null;
+            }
         }
 
         return is_object($wp_filesystem) ? $wp_filesystem : null;

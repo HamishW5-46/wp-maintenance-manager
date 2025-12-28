@@ -4,7 +4,7 @@ Tags: maintenance mode, htaccess, apache, 503, admin bypass
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 0.3.0
+Stable tag: 0.3.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -56,11 +56,15 @@ Disabling maintenance removes the block entirely.
 4. Configure options and apply rules
 
 The plugin requires write access to `.htaccess`.
+Apache 2.4+ is required (uses `RewriteCond -ipmatch` for IP allowlists).
 
 == Frequently Asked Questions ==
 
 = Does this work with Nginx? =
 No. This plugin is Apache-only by design.
+
+= What version of Apache is required? =
+Apache 2.4+ (uses `RewriteCond -ipmatch` for IP allowlists).
 
 = Will this break my site if WordPress is down? =
 No. That is the point. The rules execute before WordPress loads.

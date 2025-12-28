@@ -1,10 +1,7 @@
 <?php
 defined('WP_UNINSTALL_PLUGIN') || exit;
 
-require_once __DIR__ . '/includes/class-wpmm-htaccess.php';
-
-// Remove rules and delete options
-WPMM_Htaccess::sync(false);
+// No .htaccess interaction during uninstall.
 
 delete_option('wpmm_enabled');
 delete_option('wpmm_cookie_bypass');

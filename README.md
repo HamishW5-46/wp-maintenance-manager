@@ -17,9 +17,13 @@ This plugin manages maintenance mode at the **Apache `.htaccess` level**, not in
 - No reliance on headers or auth cookies
 
 ## Requirements
-- Apache
+- Apache 2.4+ (uses `RewriteCond -ipmatch` for IP allowlists)
 - WordPress 6.0+
 - PHP 7.4+
+
+## FAQ
+**What version of Apache is required?**  
+Apache 2.4+ (uses `RewriteCond -ipmatch` for IP allowlists).
 
 ## Installation
 See `readme.txt` or the WordPress.org plugin page for full installation instructions.
